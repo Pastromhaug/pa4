@@ -147,22 +147,24 @@ void __boot() {
     keyboard_init();
 
     // see which cores are already on
-    for (int i = 0; i < 32; i++)
-      printf("CPU[%d] is %s\n", i, (current_cpu_enable() & (1<<i)) ? "on" : "off");
+    //for (int i = 0; i < 32; i++)
+      //printf("CPU[%d] is %s\n", i, (current_cpu_enable() & (1<<i)) ? "on" : "off");
 
     // turn on all other cores
     set_cpu_enable(0xFFFFFFFF);
 
     // see which cores got turned on
     busy_wait(0.1);
-    for (int i = 0; i < 32; i++)
-      printf("CPU[%d] is %s\n", i, (current_cpu_enable() & (1<<i)) ? "on" : "off");
-    
-    printf("wat\n");
+    //for (int i = 0; i < 32; i++)
+      //printf("CPU[%d] is %s\n", i, (current_cpu_enable() & (1<<i)) ? "on" : "off");
     network_poll();
 
 
-  } else {
+  } else if (current_cpu_id() == 1){
+    
+    network_handle();
+
+  }  else{
     /* remaining cores boot after core 0 turns them on */
 
     // nothing to initialize here... 
