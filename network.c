@@ -2,7 +2,7 @@
 #include "machine.h"
 
 #define RING_SIZE 16
-#define BIG_RING_SIZE 100
+#define BIG_RING_SIZE 50
 #define BUFFER_SIZE 4096
 
 // a pointer to the memory-mapped I/O region for the console
@@ -10,7 +10,7 @@ volatile struct dev_net *dev_net;
 struct dma_ring_slot* Big_Ring;
 unsigned int Big_head;
 unsigned int Big_tail;
-//unsigned int Big_handle_index;
+unsigned int Big_handle_index;
 
 
 
@@ -59,11 +59,6 @@ void network_init(){
 
       //initialize Big_Ring
       Big_Ring= (struct dma_ring_slot*) malloc(sizeof(struct dma_ring_slot) * BIG_RING_SIZE);
-      for (int i = 0; i < BIG_RING_SIZE; i++){
-              void* space = malloc(BUFFER_SIZE);
-              Big_Ring[i].dma_base = virtual_to_physical(space);
-              Big_Ring[i].dma_len = BUFFER_SIZE;  
-      }
       Big_head=0;
       Big_tail=0;
 
@@ -119,7 +114,16 @@ void network_poll(){
       Big_Ring[Big_Index].dma_base =(unsigned int) ringptr;
       Big_Ring[Big_Index].dma_len = BUFFER_SIZE;
       //increment head of big ring
+      
+      //printf("Big_head is %d\n", Big_head);
+      //printf("Big_Index is %d\n", Big_Index);
+      //struct honeypot_command_packet *test = (struct honeypot_command_packet*)Big_Ring[Big_Index].dma_base;
+      //unsigned short secret = test->secret_big_endian;
+      //printf("secret is %d\n", secret);
       Big_head++;
+      //print secret for testing
+      //unsigned short secret = ((struct honeypot_command_packet*)Big_Ring[Big_Index].dma_base)->secret_big_endian;
+      //printf("secret is %d\n", secret);
 
       //malloc space for a new buffer in small ring
       void* space = malloc(BUFFER_SIZE);
@@ -130,82 +134,100 @@ void network_poll(){
       dev_net->rx_tail++;
     }
   }
+}
 
   void network_handle(){
     // next order of business is to figure out how to access the Big_Ring in a concurrency-safe method
 
+    // use mutex lock to read from Big_Ring
+    // free the space containing that packet
+    unsigned short secret;
+    while (1){
+      
+      if (Big_head != Big_tail){
+        Big_handle_index = Big_tail % BIG_RING_SIZE;
+        struct honeypot_command_packet *retrieve = (struct honeypot_command_packet*)Big_Ring[Big_handle_index].dma_base;
+
+        //free that buffer
+        free((void*)Big_Ring[Big_handle_index].dma_base);
+        //Increment Big_tail
+        printf("Big_tail is %d\n", Big_tail);
+        printf("Big_handle_index is %d\n", Big_handle_index);
+        Big_tail++;
 
 
 
 
-    //analyze packets, execute commands
 
-    // retrieve the packet from memory
 
-    // look at the secret
-    /*
-    // look at the secret
-    struct honeypot_command_packet *temp = queue_get(memq)->packet;
-    unsigned short secret = temp->secret_big_endian;
-    printf("secret is %d\n", secret);
+        secret = retrieve->secret_big_endian;
+        printf("secret is %d\n", secret);
+        // if secret is 3410, treat as a cmd packet
+        if (secret == 4148){
+          // find the cmd packet
+          unsigned short cmd = retrieve->cmd_big_endian;
+          printf("cmd is %d\n", cmd);
+          if (cmd == HONEYPOT_ADD_SPAMMER){
+            // add address to list of spammer addresses
+            printf("add spammer\n");
+          }
+          else if (cmd == HONEYPOT_ADD_EVIL){
+            //add evil hash value to hashtable
+            printf("add evil\n");
+          }
+          else if(cmd == HONEYPOT_ADD_VULNERABLE){
+            // add port to list of vulnerable ports
+            printf("add vulnerable\n");
+          }
+          else if (cmd == HONEYPOT_DEL_SPAMMER){
+            //remove address from list of spammer addresses
+            printf("del spammer\n");
+          }
+          else if(cmd == HONEYPOT_DEL_EVIL){
+            // remove hash value from evil hashtable
+            printf("del evil\n");
+          }
+          else if (cmd == HONEYPOT_DEL_VULNERABLE){
+            // remove port from list of vulnerable ports
+            printf("del vulnerable\n");
+          }
+          else if(cmd == HONEYPOT_PRINT){
+            // Print out the statistics
+            printf("print statistics\n");
+          }
+        }
+        // else treat like a non-cmd packet
+        else{
+          //look at source address and see if it is in list
+          struct packet_header what = retrieve->headers;
+          unsigned int saddr=what.ip_source_address_big_endian;
+          printf("saddr is %d\n", saddr); 
+          //if (saddr is in list of spammer addresses){
+            //update accordingly
+          //}
 
-    // if secret is 3410, treat as a cmd packet
-    if (secret == 4148){
-      // find the cmd packet
-      unsigned short cmd = temp->cmd_big_endian;
-      if (cmd == HONEYPOT_ADD_SPAMMER){
-        // add address to list of spammer addresses
+          //look at destination port
+          unsigned int dest=what.udp_dest_port_big_endian;
+          printf("dest is %d\n", dest); 
+          //if (dest is in list of vulnerable ports){
+            //update accordingly
+          //}
+
+          //check the hash and see if it is an evil packet
+          //hash = djb2(*(honeypot_command_packet *)temp);
+          //if (hash is in hashtable){
+           // update hashtable accordingly
+          //}
+        }
       }
-      else if (cmd == HONEYPOT_ADD_EVIL){
-        //add evil hash value to hashtable
-      }
-      else if(cmd == HONEYPOT_ADD_VULNERABLE){
-        // add port to list of vulnerable ports
-      }
-      else if (cmd == HONEYPOT_DEL_SPAMMER){
-        //remove address from list of spammer addresses
-      }
-      else if(cmd == HONEYPOT_DEL_EVIL){
-        // remove hash value from evil hashtable
-      }
-      else if (cmd == HONEYPOT_DEL_VULNERABLE){
-        // remove port from list of vulnerable ports
-      }
-      else if(cmd == HONEYPOT_PRINT){
-        // Print out the statistics
     }
-    // else treat like a non-cmd packet
-    else{
-
-      //look at source address and see if it is in list
-      unsigned int saddr=temp->headers->ip_source_address_big_endian; 
-      if (saddr is in list of spammer addresses){
-        update accordingly
-      }
-
-      //look at destination port
-      unsigned int dest=temp->headers->udp_dest_port_big_endian; 
-      if (dest is in list of vulnerable ports){
-        update accordingly
-      }
-
-      //check the hash and see if it is an evil packet
-      hash = djb2(*(honeypot_command_packet *)temp);
-      if (hash is in hashtable){
-        update hashtable accordingly
-      }
-    }
-
+        
     //update global stats
     // note that the global stats need to be concurrency safe, aka need to use
     // ll and sc
-    update number of packets arrived and packets per second
+    //update number of packets arrived and packets per second
     // note that bytes and bits per second should be updated by the poller
-
-    printf("secret is %d\n", secret);
-    */
-    return;
-  }
+    //return;
 }
 
 
