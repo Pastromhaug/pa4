@@ -9,6 +9,7 @@
 // a pointer to the memory-mapped I/O region for the console
 volatile struct dev_net *dev_net;
 struct hashtable spam;
+struct hashtable vulports;
 
 //mutex locks
 int tail_lock = 0;
@@ -18,10 +19,6 @@ int free_lock = 0;
 //struct hashtable Spammer;
 //struct hashtable Evil;
 //struct hashtable Vulnerable;
-
-
-
-
 
 
 // Initializes the network driver, allocating the space for the ring buffer.
@@ -60,6 +57,7 @@ void network_init(){
 
       //initialize the hashtables
       hashtable_create(&spam);
+      hashtable_create(&vulports);
       return;
     }
   }
@@ -191,7 +189,7 @@ void network_poll(){
           }
           else if(cmd == HONEYPOT_ADD_VULNERABLE){
             // add port to list of vulnerable ports
-            //printf("add vulnerable\n");
+            hashtable_add(&vulports, retrieve->data_big_endian);
           }
           else if (cmd == HONEYPOT_DEL_SPAMMER){
             //remove address from list of spammer addresses
@@ -203,11 +201,10 @@ void network_poll(){
           }
           else if (cmd == HONEYPOT_DEL_VULNERABLE){
             // remove port from list of vulnerable ports
-            //printf("del vulnerable\n");
+            hashtable_delete(&vulports, retrieve->data_big_endian);
           }
           else if(cmd == HONEYPOT_PRINT){
-           network_print(&spam);
-        
+           hashtable_print(&spam);
           }
         }
         // else treat like a non-cmd packet

@@ -1,7 +1,7 @@
 #include "kernel.h"
 
-int totalcount = 0;
-int totalentries = 0;
+int spamcount = 0;
+int spamentries = 0;
 
 int count_lock = 0;
 int entry_lock = 0;
@@ -93,7 +93,7 @@ void hashtable_add(struct hashtable *self, unsigned int newkey) {
 
 		//add to total entries
 		mutex_lock(&entry_lock);
-		totalentries++;
+		spamentries++;
 		mutex_unlock(&entry_lock);
 
 		//printf("hashkey: %d, key: %08x, val: %d\n", hashkey, insert->key, insert->val);
@@ -148,12 +148,12 @@ void hashtable_delete(struct hashtable *self, unsigned int oldkey){
 			printf("found\n");
 			//decrease total entry by 1
 			mutex_lock(&entry_lock);
-			totalentries--;
+			spamentries--;
 			mutex_unlock(&entry_lock);
 
 			//decrease total count by val
 			mutex_lock(&count_lock);
-			totalcount = totalcount - check->val;
+			spamcount = spamcount - check->val;
 			mutex_unlock(&count_lock);
 
 			temp->next = check->next;
@@ -184,7 +184,7 @@ void hashtable_increment(struct hashtable *self, unsigned int check){
 
 			//increase total count by 1
 			mutex_lock(&count_lock);
-			totalcount++;
+			spamcount++;
 			mutex_unlock(&count_lock);
 		}
 		temp = temp->next;
@@ -193,21 +193,30 @@ void hashtable_increment(struct hashtable *self, unsigned int check){
 }
 
 
-void network_print(struct hashtable *self){
+unsigned int switch_endian(unsigned int num){
+	unsigned int swapped;
+	swapped = ((num>>24)&0xff) | ((num<<8)&0xff0000) | ((num>>8)&0xff00) | ((num<<24)&0xff000000);
+	return swapped;
+}
+
+void hashtable_print(struct hashtable *self){
 	//Print out the statistics
 	struct pair* printtemp;
+	unsigned int addr;
 	printf("print statistics\n");
-	printf("count spam_source\n");
+	printf("count      spam_source\n");
 	for (int k=0; k < self->TableSize; k++){
 		printtemp = self->buffer[k].next;
 	  	while(printtemp != NULL){
-	      printf("%d %08x      |\n", printtemp->val, printtemp->key);
-	      printtemp = printtemp->next;
+	  		addr = switch_endian(printtemp->key);
+	      	printf("%3d        0x%08x      |\n", printtemp->val, addr);
+	     	printtemp = printtemp->next;
 	    }
 	}
-	printf("total count:        %d      |\n", totalcount);
-	printf("total entries:      %d      |\n", totalentries);
+	printf("total spam count:        %d\n", spamcount);
+	printf("total spam entries:      %d\n", spamentries);
 }
+
 
 
 

@@ -30,7 +30,9 @@ void hashtable_delete(struct hashtable *self, unsigned int oldkey);
 
 void hashtable_increment(struct hashtable *self, unsigned int check);
 
-//void hashtable_print(struct hashtable *self);
+void hashtable_print(struct hashtable *self);
+
+unsigned int switch_endian(unsigned int num);
 
 #endif
 
