@@ -158,18 +158,13 @@ void __boot() {
     //for (int i = 0; i < 32; i++)
       //printf("CPU[%d] is %s\n", i, (current_cpu_enable() & (1<<i)) ? "on" : "off");
     network_start_receive();
-    network_poll();
-
-
- // } else if (current_cpu_id() == 1) {
-
-    
-
-  } else{
-    
     network_handle();
+   
 
   } 
+  else if (current_cpu_id() == 1) network_poll(); 
+  else network_handle();
+  
 
   printf("Core %d of %d is alive!\n", current_cpu_id(), current_cpu_exists());
 
