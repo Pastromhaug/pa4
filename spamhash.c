@@ -208,14 +208,11 @@ void spamhash_print(struct spamhash *self){
 	}
 	printf("total spam count:        %d\n", spamcount);
 	printf("total spam entries:      %d\n", spamentries);
-	double seconds = ((double)current_cpu_cycles())/((double)1000000);
+	
 	//printf("seconds is %f\n", seconds);
 	//printf("cycles is %d\n", current_cpu_cycles());
 	//printf("seconds is %f\n", seconds);
 
-	printf("[net: total packets :  %d  (%f pkts/sec since last print)]\n", total_pkts, ((double)total_pkts)/seconds);
-	printf("[net: total bytes :  %d  (%f Mbit/sec since last print)]\n", total_bytes, ((((double)total_bytes)*8)/1000000)/seconds);
-	
 }
 
 

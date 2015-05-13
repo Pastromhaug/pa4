@@ -38,14 +38,14 @@ void evilhash_create(struct evilhash *self){
 
 // add a value as key to the hashtable and initialize val to 0
 // if that value is already in the hashtable, do nothing
-void evilhash_add(struct evilhash *self, unsigned long djb2hash) {
+void evilhash_add(struct evilhash *self, unsigned long key) {
 	//printf("TableSize is %d\n", self->TableSize);
-	printf("1\n");
+	
 	
 
 	//printf("djb2hash is %lu\n", djb2hash);
 	//printf("djb2hash int is %d\n", (unsigned int)djb2hash);
-	unsigned int hashkey = (unsigned int)djb2hash % self->TableSize;
+	unsigned int hashkey = (unsigned int)key % self->TableSize;
 
 	//struct twos** temp = &(self->buffer + hashkey);
 	
@@ -71,7 +71,7 @@ void evilhash_add(struct evilhash *self, unsigned long djb2hash) {
 
 		check = self->buffer[hashkey].next;
 		while(check != NULL){
-			if (check->key == djb2hash){
+			if (check->key == key){
 				return;
 			}
 			check = check->next;
@@ -81,14 +81,13 @@ void evilhash_add(struct evilhash *self, unsigned long djb2hash) {
 		insert = (struct twos*)malloc(sizeof(struct twos));
 		mutex_unlock(&malloc_lock);
 
-		printf("2\n");
-
+	
 
 		struct twos* temp;
 		temp = self->buffer[hashkey].next;
 		self->buffer[hashkey].next = insert;
 		insert->next = temp;
-		insert->key = djb2hash;
+		insert->key = key;
 		insert->val = 0;
 		self->numElements++;
 
@@ -101,8 +100,6 @@ void evilhash_add(struct evilhash *self, unsigned long djb2hash) {
 		mutex_lock(&evilentry_lock);
 		evilentries++;
 		mutex_unlock(&evilentry_lock);
-
-		printf("3\n");
 
 		//printf("hashkey: %d, key: %08x, val: %d\n", hashkey, insert->key, insert->val);
 
@@ -182,13 +179,20 @@ void evilhash_increment(struct evilhash *self, unsigned long djb2hash){
 		self->buffer[hashkey].val++;
 		//printf("number is %d\n", self->buffer[hashkey].val);
 	}*/
+	
 
 	unsigned int hashkey = djb2hash % self->TableSize;
 	struct twos* temp = self->buffer[hashkey].next;
 	while(temp != NULL) {
+		//unsigned long temp2 = switch_endian(djb2hash);
+		unsigned long temp3 = switch_endian(temp->key);
+		
+		//printf("djb2hash is %08lx\n", temp2);
+		//printf("temp->key is %08lx\n", temp3);
 		//printf("check is %d\n", check);
 		//printf("temp key is %d\n", temp->key);
-		if (temp->key == djb2hash){
+		if (temp3 == djb2hash){
+			//printf("found\n");
 			temp->val++;
 			//printf("found it!\n");
 
@@ -205,18 +209,23 @@ void evilhash_increment(struct evilhash *self, unsigned long djb2hash){
 void evilhash_print(struct evilhash *self){
 	//Print out the statistics
 	struct twos* printtemp;
-	unsigned int addr;
+	unsigned long addr;
 	printf("count      evil_source\n");
 	for (int k=0; k < self->TableSize; k++){
 		printtemp = self->buffer[k].next;
 	  	while(printtemp != NULL){
 	  		addr = switch_endian(printtemp->key);
-	      	printf("%3d        0x%08x      |\n", printtemp->val, addr);
+	      	printf("%3d        0x%08lx      |\n", printtemp->val, addr);
 	     	printtemp = printtemp->next;
 	    }
 	}
 	printf("total evil count:        %d\n", evilcount);
-	printf("total evil entries:      %d\n", evilentries);
+	printf("total evil entries:      %d\n\n", evilentries);
+
+	double seconds = ((double)current_cpu_cycles())/((double)1000000);
+	printf("[net: total packets :  %d  (%f pkts/sec since last print)]\n", total_pkts, ((double)total_pkts)/seconds);
+	printf("[net: total bytes :  %d  (%f Mbit/sec since last print)]\n", total_bytes, ((((double)total_bytes)*8)/1000000)/seconds);
+	
 }
 
 

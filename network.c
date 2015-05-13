@@ -134,7 +134,8 @@ void network_poll(){
     //ringtest is the pointer to the ring
     struct dma_ring_slot* small_ring = physical_to_virtual(dev_net->rx_base);
 
-    if(dev_net->rx_tail != dev_net->rx_head){
+    if(dev_net->rx_tail != dev_net->rx_head &&
+        !(Big_head != Big_tail && (Big_head%BIG_RING_SIZE) == (Big_tail%BIG_RING_SIZE))){
        int index = dev_net->rx_tail % dev_net->rx_capacity;
        int Big_Index = Big_head % BIG_RING_SIZE;
       // ringptr is the pointer to the ring buffer
@@ -183,8 +184,9 @@ void network_poll(){
         struct honeypot_command_packet *retrieve = (struct honeypot_command_packet*)Big_Ring[Big_handle_index].dma_base;
 
         // create 4-byte hash fingerprint for the evil hashtable
-        unsigned long djb2hash = djb2((unsigned char *)Big_Ring[Big_handle_index].dma_base, Big_Ring[Big_handle_index].dma_len);
-        printf("djb2 is %lu\n", djb2hash);
+        unsigned long djb2hash = djb2((unsigned char *)retrieve, Big_Ring[Big_handle_index].dma_len);
+
+        //printf("djb2 is %08lx\n", djb2hash);
 
         //free that buffer
         mutex_lock(&free_lock);
@@ -229,7 +231,9 @@ void network_poll(){
           }
           else if (cmd == 0x201){
             //add evil hash value to hashtable
-            //evilhash_add(&evil, djb2hash);
+            //unsigned long temp = (unsigned long)retrieve->data_big_endian;
+            //printf("temp is %08lx\n" , temp);
+            evilhash_add(&evil, retrieve->data_big_endian);
           }
           else if(cmd == 0x301){
             // add port to list of vulnerable ports
@@ -242,7 +246,7 @@ void network_poll(){
           }
           else if(cmd == 0x202){
             // remove hash value from evil hashtable
-            //evilhash_delete(&evil, djb2hash);
+            evilhash_delete(&evil, djb2hash);
             //printf("del evil\n");
           }
           else if (cmd == 0x302){
@@ -253,7 +257,7 @@ void network_poll(){
             mutex_lock(&print_lock);
             spamhash_print(&spam);
             vulnhash_print(&vulports);
-            ///evilhash_print(&evil);
+            evilhash_print(&evil);
             mutex_unlock(&print_lock);
           }
         }
@@ -272,7 +276,7 @@ void network_poll(){
 
           //check the hash and see if it is an evil packet
           //hash = djb2(*(honeypot_command_packet *)temp);
-          //evilhash_increment(&evil, djb2hash);
+          evilhash_increment(&evil, djb2hash);
           //if (hash is in hashtable){
            // update hashtable accordingly
           //}
