@@ -1,13 +1,13 @@
-#ifndef vulnhash_H_
-#define vulnhash_H_
+#ifndef VULNHASH_H_
+#define VULNHASH_H_
 
 #include "kernel.h"
 
 extern int vulncount;
 extern int vulnentries;
 
-extern int count_lock;
-extern int entry_lock;
+extern int vulncount_lock;
+extern int vulnentry_lock;
 
 unsigned int hash( unsigned int a);
 

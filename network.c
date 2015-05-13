@@ -2,6 +2,7 @@
 #include "machine.h"
 #include "spamhash.h"
 #include "vulnhash.h"
+#include "evilhash.h"
 
 #define RING_SIZE 16
 #define BIG_RING_SIZE 100
@@ -11,6 +12,7 @@
 volatile struct dev_net *dev_net;
 struct spamhash spam;
 struct vulnhash vulports;
+struct evilhash evil;
 
 //mutex locks
 int tail_lock = 0;
@@ -30,6 +32,26 @@ unsigned int switch_endian(unsigned int num){
   unsigned int swapped;
   swapped = ((num>>24)&0xff) | ((num<<8)&0xff0000) | ((num>>8)&0xff00) | ((num<<24)&0xff000000);
   return swapped;
+}
+
+
+unsigned long djb2(unsigned char *pkt, int n) {
+  unsigned long hash = 5381;
+  int i = 0;
+  while (i < n-8) {
+    hash = hash * 33 + pkt[i++];
+    hash = hash * 33 + pkt[i++];
+    hash = hash * 33 + pkt[i++];
+    hash = hash * 33 + pkt[i++];
+    hash = hash * 33 + pkt[i++];
+    hash = hash * 33 + pkt[i++];
+    hash = hash * 33 + pkt[i++];
+    hash = hash * 33 + pkt[i++];
+  }
+  while (i < n)
+    hash = hash * 33 + pkt[i++];
+  return hash;
+
 }
 
 // Initializes the network driver, allocating the space for the ring buffer.
@@ -69,6 +91,7 @@ void network_init(){
       //initialize the hashtables
       spamhash_create(&spam);
       vulnhash_create(&vulports);
+      evilhash_create(&evil);
       return;
     }
   }
@@ -159,6 +182,10 @@ void network_poll(){
         Big_handle_index = Big_tail % BIG_RING_SIZE;
         struct honeypot_command_packet *retrieve = (struct honeypot_command_packet*)Big_Ring[Big_handle_index].dma_base;
 
+        // create 4-byte hash fingerprint for the evil hashtable
+        unsigned long djb2hash = djb2((unsigned char *)Big_Ring[Big_handle_index].dma_base, Big_Ring[Big_handle_index].dma_len);
+        printf("djb2 is %lu\n", djb2hash);
+
         //free that buffer
         mutex_lock(&free_lock);
         free((void*)Big_Ring[Big_handle_index].dma_base);
@@ -184,23 +211,25 @@ void network_poll(){
         total_bytes = total_bytes + num_bytes;
         mutex_unlock(&bytes_lock);
         //printf("total packets is %d\n", total_pkts);
-        //printf("total bytes is %d\n", total_bytes);
+        
 
 
         secret = retrieve->secret_big_endian;
         //printf("secret is %d\n", secret);
         // if secret is 3410, treat as a cmd packet
         if (secret == 4148){
+
           // find the cmd packet
           unsigned short cmd = retrieve->cmd_big_endian;
          //printf("cmd is %d\n", cmd);
           if (cmd == 0x101){
             // add address to list of spammer addresses
+            //printf("working\n");
             spamhash_add(&spam, retrieve->data_big_endian);
           }
           else if (cmd == 0x201){
             //add evil hash value to hashtable
-           // printf("add evil\n");
+            //evilhash_add(&evil, djb2hash);
           }
           else if(cmd == 0x301){
             // add port to list of vulnerable ports
@@ -213,6 +242,7 @@ void network_poll(){
           }
           else if(cmd == 0x202){
             // remove hash value from evil hashtable
+            //evilhash_delete(&evil, djb2hash);
             //printf("del evil\n");
           }
           else if (cmd == 0x302){
@@ -223,6 +253,7 @@ void network_poll(){
             mutex_lock(&print_lock);
             spamhash_print(&spam);
             vulnhash_print(&vulports);
+            ///evilhash_print(&evil);
             mutex_unlock(&print_lock);
           }
         }
@@ -241,12 +272,14 @@ void network_poll(){
 
           //check the hash and see if it is an evil packet
           //hash = djb2(*(honeypot_command_packet *)temp);
+          //evilhash_increment(&evil, djb2hash);
           //if (hash is in hashtable){
            // update hashtable accordingly
           //}
         }
       }
       else mutex_unlock(&tail_lock);
+      //printf("cycles total is %d\n", current_cpu_cycles());
     }
     // note that the global stats need to be concurrency safe, aka need to use
     // ll and sc

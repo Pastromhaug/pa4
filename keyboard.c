@@ -2,6 +2,7 @@
 #include "spamhash.h"
 #include "vulnhash.h"
 #include "network.h"
+#include "evilhash.h"
 
 // Keyboard device driver.
 
@@ -33,6 +34,7 @@ void keyboard_trap() {
     if(c>0x00){
       spamhash_print(&spam);
       vulnhash_print(&vulports);
+      evilhash_print(&evil);
     }
     // then just print it
     putchar(c);
