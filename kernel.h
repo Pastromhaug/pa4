@@ -7,6 +7,20 @@
 #include "keyboard.h"
 #include "network.h"
 
+struct dma_ring_slot* Big_Ring;
+unsigned int Big_head;
+unsigned int Big_tail;
+unsigned int Big_handle_index;
+
+// Global Stats
+unsigned int total_pkts;
+unsigned int total_bytes;
+
+
+// saddr hashtable
+struct hashtable *saddr;
+
+
 /* This is used by the trap handler to save the CPU state
  * Note: So long as trap handlers do not touch any coprocessor state (e.g.
  * memory management stuff in coprocessor 0, or the floating point registers,

@@ -82,18 +82,18 @@ struct honeypot_command_packet {
 
 // Add a new address, port, or hash to a list.
 // The 'data' field contains the value to add.
-#define HONEYPOT_ADD_SPAMMER    0x101
-#define HONEYPOT_ADD_EVIL       0x102
-#define HONEYPOT_ADD_VULNERABLE 0x103
+#define HONEYPOT_ADD_SPAMMER    0x101         // 257
+#define HONEYPOT_ADD_EVIL       0x102         // 258
+#define HONEYPOT_ADD_VULNERABLE 0x103         // 259
 
 // Remove an existing address, port, or hash from a list.
 // The 'data' field contains the value to remove.
-#define HONEYPOT_DEL_SPAMMER    0x201
-#define HONEYPOT_DEL_EVIL       0x202
-#define HONEYPOT_DEL_VULNERABLE 0x203
+#define HONEYPOT_DEL_SPAMMER    0x201         // 513
+#define HONEYPOT_DEL_EVIL       0x202         // 514
+#define HONEYPOT_DEL_VULNERABLE 0x203         // 515
 
 // Print out all of the current statistics.
 // The 'data' field can be ignored.
-#define HONEYPOT_PRINT		0x301
+#define HONEYPOT_PRINT		0x301               // 769
 
 #endif

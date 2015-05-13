@@ -1,22 +1,15 @@
 #include "kernel.h"
 #include "machine.h"
+#include "hashtable_pa4.h"
+
 
 #define RING_SIZE 16
-#define BIG_RING_SIZE 50
+#define BIG_RING_SIZE 100
 #define BUFFER_SIZE 4096
 
 // a pointer to the memory-mapped I/O region for the console
 volatile struct dev_net *dev_net;
-struct dma_ring_slot* Big_Ring;
-unsigned int Big_head;
-unsigned int Big_tail;
-unsigned int Big_handle_index;
-
-
-
-
-
-
+struct hashtable spam;
 
 
 
@@ -63,6 +56,8 @@ void network_init(){
       Big_tail=0;
 
 
+      //initialize the hashtables
+      hashtable_create(&spam);
       return;
     }
   }
@@ -112,7 +107,8 @@ void network_poll(){
       void* ringptr= physical_to_virtual(small_ring[index].dma_base);
       //Place ringptr from small ring to big ring
       Big_Ring[Big_Index].dma_base =(unsigned int) ringptr;
-      Big_Ring[Big_Index].dma_len = BUFFER_SIZE;
+      //let dma_len of big ring to be size of the packet in bytes
+      Big_Ring[Big_Index].dma_len = (small_ring[index].dma_len);
       //increment head of big ring
       
       //printf("Big_head is %d\n", Big_head);
@@ -151,64 +147,80 @@ void network_poll(){
         //free that buffer
         free((void*)Big_Ring[Big_handle_index].dma_base);
         //Increment Big_tail
-        printf("Big_tail is %d\n", Big_tail);
-        printf("Big_handle_index is %d\n", Big_handle_index);
+        //printf("Big_tail is %d\n", Big_tail);
+        //printf("Big_handle_index is %d\n", Big_handle_index);
+        unsigned int num_bytes = Big_Ring[Big_handle_index].dma_len;
         Big_tail++;
 
 
 
-
+         //update global stats
+        // total packet number increases by 1
+        total_pkts++;
+        // total byte number increases by number of bytes
+        total_bytes = total_bytes + num_bytes;
+        //printf("total packets is %d\n", total_pkts);
+        //printf("total bytes is %d\n", total_bytes);
 
 
         secret = retrieve->secret_big_endian;
-        printf("secret is %d\n", secret);
+        //printf("secret is %d\n", secret);
         // if secret is 3410, treat as a cmd packet
         if (secret == 4148){
           // find the cmd packet
           unsigned short cmd = retrieve->cmd_big_endian;
-          printf("cmd is %d\n", cmd);
+          //printf("cmd is %d\n", cmd);
           if (cmd == HONEYPOT_ADD_SPAMMER){
             // add address to list of spammer addresses
-            printf("add spammer\n");
+            hashtable_add(&spam, retrieve->data_big_endian);
           }
           else if (cmd == HONEYPOT_ADD_EVIL){
             //add evil hash value to hashtable
-            printf("add evil\n");
+           // printf("add evil\n");
           }
           else if(cmd == HONEYPOT_ADD_VULNERABLE){
             // add port to list of vulnerable ports
-            printf("add vulnerable\n");
+            //printf("add vulnerable\n");
           }
           else if (cmd == HONEYPOT_DEL_SPAMMER){
             //remove address from list of spammer addresses
-            printf("del spammer\n");
+            hashtable_delete(&spam, retrieve->data_big_endian);
           }
           else if(cmd == HONEYPOT_DEL_EVIL){
             // remove hash value from evil hashtable
-            printf("del evil\n");
+            //printf("del evil\n");
           }
           else if (cmd == HONEYPOT_DEL_VULNERABLE){
             // remove port from list of vulnerable ports
-            printf("del vulnerable\n");
+            //printf("del vulnerable\n");
           }
           else if(cmd == HONEYPOT_PRINT){
             // Print out the statistics
-            printf("print statistics\n");
-          }
-        }
+            //printf("print statistics\n");
+            //printf("count spam_source\n");
+            //int totalcount = 0;
+            //int totalentr =0;
+            //for (int k=0; k < spam.TableSize; k++){
+              //if (spam.buffer[k].key != 0){
+                //printf("%d %08x      |\n", spam.buffer[k].val, spam.buffer[k].key);
+                //totalcount = totalcount + spam.buffer[k].val;
+                //totalentr++;
+              }
+            }
+            //printf("total count:      %d      |\n", totalcount);
+
+            //printf("total entries:      %d      |\n", totalentr);
         // else treat like a non-cmd packet
         else{
           //look at source address and see if it is in list
           struct packet_header what = retrieve->headers;
           unsigned int saddr=what.ip_source_address_big_endian;
-          printf("saddr is %d\n", saddr); 
-          //if (saddr is in list of spammer addresses){
-            //update accordingly
-          //}
+          //printf("saddr is %d\n", saddr); 
+          hashtable_increment(&spam, saddr);
 
           //look at destination port
-          unsigned int dest=what.udp_dest_port_big_endian;
-          printf("dest is %d\n", dest); 
+          //unsigned int dest=what.udp_dest_port_big_endian;
+          //printf("dest is %d\n", dest); 
           //if (dest is in list of vulnerable ports){
             //update accordingly
           //}
@@ -221,8 +233,6 @@ void network_poll(){
         }
       }
     }
-        
-    //update global stats
     // note that the global stats need to be concurrency safe, aka need to use
     // ll and sc
     //update number of packets arrived and packets per second
