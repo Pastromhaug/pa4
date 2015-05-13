@@ -161,7 +161,11 @@ void __boot() {
     network_poll();
 
 
-  } else {
+ // } else if (current_cpu_id() == 1) {
+
+    
+
+  } else{
     
     network_handle();
 

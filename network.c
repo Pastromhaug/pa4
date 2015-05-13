@@ -188,42 +188,42 @@ void network_poll(){
 
 
         secret = retrieve->secret_big_endian;
-        printf("secret is %d\n", secret);
+        //printf("secret is %d\n", secret);
         // if secret is 3410, treat as a cmd packet
         if (secret == 4148){
           // find the cmd packet
           unsigned short cmd = retrieve->cmd_big_endian;
-         printf("cmd is %d\n", cmd);
-          if (cmd == HONEYPOT_ADD_SPAMMER){
+         //printf("cmd is %d\n", cmd);
+          if (cmd == 0x101){
             // add address to list of spammer addresses
             spamhash_add(&spam, retrieve->data_big_endian);
           }
-          else if (cmd == HONEYPOT_ADD_EVIL){
+          else if (cmd == 0x201){
             //add evil hash value to hashtable
            // printf("add evil\n");
           }
-          else if(cmd == HONEYPOT_ADD_VULNERABLE){
+          else if(cmd == 0x301){
             // add port to list of vulnerable ports
-            //printf("holy moly\n");
-            //vulnhash_add(&vulports, retrieve->data_big_endian);
+            //printf("data is %d\n", retrieve->data_big_endian);
+            vulnhash_add(&vulports, retrieve->data_big_endian);
           }
-          else if (cmd == HONEYPOT_DEL_SPAMMER){
+          else if (cmd == 0x102){
             //remove address from list of spammer addresses
             spamhash_delete(&spam, retrieve->data_big_endian);
           }
-          else if(cmd == HONEYPOT_DEL_EVIL){
+          else if(cmd == 0x202){
             // remove hash value from evil hashtable
             //printf("del evil\n");
           }
-          else if (cmd == HONEYPOT_DEL_VULNERABLE){
+          else if (cmd == 0x302){
             // remove port from list of vulnerable ports
-            //vulnhash_delete(&vulports, retrieve->data_big_endian);
+            vulnhash_delete(&vulports, retrieve->data_big_endian);
           }
-          else if(cmd == HONEYPOT_PRINT){
+          else if(cmd == 0x103){
             mutex_lock(&print_lock);
             spamhash_print(&spam);
+            vulnhash_print(&vulports);
             mutex_unlock(&print_lock);
-           //vulnhash_print(&vulports);
           }
         }
         // else treat like a non-cmd packet

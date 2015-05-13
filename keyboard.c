@@ -1,5 +1,6 @@
 #include "kernel.h"
 #include "spamhash.h"
+#include "vulnhash.h"
 #include "network.h"
 
 // Keyboard device driver.
@@ -31,6 +32,7 @@ void keyboard_trap() {
     char c = dev_kbd->data;
     if(c>0x00){
       spamhash_print(&spam);
+      vulnhash_print(&vulports);
     }
     // then just print it
     putchar(c);

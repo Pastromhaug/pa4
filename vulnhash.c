@@ -9,7 +9,8 @@ int vulnentry_lock = 0;
 //--------------------HASHTABLE---------------------------------//
 //hashtable for source addr and source ports
 
-unsigned int hash2(unsigned short a) {
+unsigned int hash2(unsigned int a) {
+
 
     a = (a ^ 61) ^ (a >>16);
     a = a + (a <<3);
@@ -21,7 +22,7 @@ unsigned int hash2(unsigned short a) {
 
 struct couple {
 	struct couple* next;
-    short key;
+    int key;
     int val;
 };
 
@@ -48,11 +49,13 @@ void vulnhash_create(struct vulnhash *self){
 
 // add a value as key to the hashtable and initialize val to 0
 // if that value is already in the hashtable, do nothing
-void vulnhash_add(struct vulnhash *self, unsigned short newkey) {
+void vulnhash_add(struct vulnhash *self, unsigned int newkey) {
 	//printf("TableSize is %d\n", self->TableSize);
 	unsigned int hashkey = hash2(newkey) % self->TableSize;
 	//struct couple** temp = &(self->buffer + hashkey);
-	//printf("temp is %p\n", temp);
+	
+	//printf("hash2(newkey) is %d\n", hash2(newkey));
+	//printf("hashkey is %d\n", hashkey);
 
 	// insert is the node that is being added
 	struct couple* insert;
@@ -60,6 +63,7 @@ void vulnhash_add(struct vulnhash *self, unsigned short newkey) {
 	
 
 	struct couple* check;
+
 
 //	if(self->buffer[hashkey].key == 0){
 //		self->buffer[hashkey].key = newkey;
@@ -83,6 +87,9 @@ void vulnhash_add(struct vulnhash *self, unsigned short newkey) {
 
 
 
+
+
+
 		struct couple* temp;
 		temp = self->buffer[hashkey].next;
 		self->buffer[hashkey].next = insert;
@@ -90,6 +97,11 @@ void vulnhash_add(struct vulnhash *self, unsigned short newkey) {
 		insert->key = newkey;
 		insert->val = 0;
 		self->numElements++;
+
+		//printf("newkey is %d\n", newkey);
+		//printf("insert->key is %d\n", insert->key);
+
+
 
 		//add to total entries
 		mutex_lock(&vulnentry_lock);
@@ -127,7 +139,7 @@ void vulnhash_add(struct vulnhash *self, unsigned short newkey) {
 
 //Remove a saddr or destport from the hashtable
 // if the value is not in the hashtable, do nothing
-void vulnhash_delete(struct vulnhash *self, unsigned short oldkey){
+void vulnhash_delete(struct vulnhash *self, unsigned int oldkey){
 	/*unsigned int hashkey = hash2(oldkey) % self->TableSize;
 	if(self->buffer[hashkey].key != 0)
 	{
@@ -145,7 +157,6 @@ void vulnhash_delete(struct vulnhash *self, unsigned short oldkey){
 
 	while(check != NULL) {
 		if (check->key == oldkey){
-			printf("found\n");
 			//decrease total entry by 1
 			mutex_lock(&vulnentry_lock);
 			vulnentries--;
@@ -168,7 +179,7 @@ void vulnhash_delete(struct vulnhash *self, unsigned short oldkey){
 }
 
 // check if a saddr or destport is in the hashtable, if so, increment the value by 1
-void vulnhash_increment(struct vulnhash *self, unsigned short check){
+void vulnhash_increment(struct vulnhash *self, unsigned int check){
 	//unsigned int hashkey = hash2(check) % self->TableSize;
 	//printf("key is %d\n", self->buffer[hashkey].key);
 	/*if (self->buffer[hashkey].key != 0){
@@ -176,11 +187,16 @@ void vulnhash_increment(struct vulnhash *self, unsigned short check){
 		//printf("number is %d\n", self->buffer[hashkey].val);
 	}*/
 
+	check = check << 16;
+
 	unsigned int hashkey = hash2(check) % self->TableSize;
 	struct couple* temp = self->buffer[hashkey].next;
 	while(temp != NULL) {
+		//printf("check is %d\n", check);
+		//printf("temp key is %d\n", temp->key);
 		if (temp->key == check){
 			temp->val++;
+			//printf("found it!\n");
 
 			//increase total count by 1
 			mutex_lock(&vulncount_lock);
@@ -196,7 +212,6 @@ void vulnhash_print(struct vulnhash *self){
 	//Print out the statistics
 	struct couple* printtemp;
 	unsigned int addr;
-	printf("print statistics\n");
 	printf("count      vuln_source\n");
 	for (int k=0; k < self->TableSize; k++){
 		printtemp = self->buffer[k].next;

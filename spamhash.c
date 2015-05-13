@@ -145,7 +145,7 @@ void spamhash_delete(struct spamhash *self, unsigned int oldkey){
 
 	while(check != NULL) {
 		if (check->key == oldkey){
-			printf("found\n");
+			//printf("found\n");
 			//decrease total entry by 1
 			mutex_lock(&spamentry_lock);
 			spamentries--;
