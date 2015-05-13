@@ -32,6 +32,7 @@ void keyboard_trap() {
     // read the character
     char c = dev_kbd->data;
     if(c>0x00){
+      // if there is an interrupt, print stats
       spamhash_print(&spam);
       vulnhash_print(&vulports);
       evilhash_print(&evil);

@@ -22,10 +22,6 @@ int print_lock = 0;
 int pkts_lock = 0;
 int bytes_lock = 0;
 
-//struct hashtable Spammer;
-//struct hashtable Evil;
-//struct hashtable Vulnerable;
-
 //Citation for switch endian function
 //http://stackoverflow.com/questions/2182002/convert-big-endian-to-little-endian-in-c-without-using-provided-func
 unsigned int switch_endian(unsigned int num){
@@ -87,7 +83,6 @@ void network_init(){
       Big_head=0;
       Big_tail=0;
 
-
       //initialize the hashtables
       spamhash_create(&spam);
       vulnhash_create(&vulports);
@@ -145,16 +140,7 @@ void network_poll(){
       //let dma_len of big ring to be size of the packet in bytes
       Big_Ring[Big_Index].dma_len = (small_ring[index].dma_len);
       //increment head of big ring
-      
-      //printf("Big_head is %d\n", Big_head);
-      //printf("Big_Index is %d\n", Big_Index);
-      //struct honeypot_command_packet *test = (struct honeypot_command_packet*)Big_Ring[Big_Index].dma_base;
-      //unsigned short secret = test->secret_big_endian;
-      //printf("secret is %d\n", secret);
       Big_head++;
-      //print secret for testing
-      //unsigned short secret = ((struct honeypot_command_packet*)Big_Ring[Big_Index].dma_base)->secret_big_endian;
-      //printf("secret is %d\n", secret);
 
       //malloc space for a new buffer in small ring
       mutex_lock(&malloc_lock);
@@ -171,10 +157,6 @@ void network_poll(){
 }
 
   void network_handle(){
-    // next order of business is to figure out how to access the Big_Ring in a concurrency-safe method
-
-    // use mutex lock to read from Big_Ring
-    // free the space containing that packet
     unsigned short secret;
     while (1){
       
@@ -186,17 +168,11 @@ void network_poll(){
         // create 4-byte hash fingerprint for the evil hashtable
         unsigned long djb2hash = djb2((unsigned char *)retrieve, Big_Ring[Big_handle_index].dma_len);
 
-        //printf("djb2 is %08lx\n", djb2hash);
-
         //free that buffer
         mutex_lock(&free_lock);
         free((void*)Big_Ring[Big_handle_index].dma_base);
         mutex_unlock(&free_lock);
 
-        //printf("2\n");
-        //Increment Big_tail
-        //printf("Big_tail is %d\n", Big_tail);
-        //printf("Big_handle_index is %d\n", Big_handle_index);
         unsigned int num_bytes = Big_Ring[Big_handle_index].dma_len;
         Big_tail++;
         mutex_unlock(&tail_lock);
@@ -212,32 +188,24 @@ void network_poll(){
         mutex_lock(&bytes_lock);
         total_bytes = total_bytes + num_bytes;
         mutex_unlock(&bytes_lock);
-        //printf("total packets is %d\n", total_pkts);
-        
+             
 
-
+        //Begin analysis
         secret = retrieve->secret_big_endian;
-        //printf("secret is %d\n", secret);
-        // if secret is 3410, treat as a cmd packet
         if (secret == 4148){
-
           // find the cmd packet
           unsigned short cmd = retrieve->cmd_big_endian;
          //printf("cmd is %d\n", cmd);
           if (cmd == 0x101){
             // add address to list of spammer addresses
-            //printf("working\n");
             spamhash_add(&spam, retrieve->data_big_endian);
           }
           else if (cmd == 0x201){
             //add evil hash value to hashtable
-            //unsigned long temp = (unsigned long)retrieve->data_big_endian;
-            //printf("temp is %08lx\n" , temp);
             evilhash_add(&evil, retrieve->data_big_endian);
           }
           else if(cmd == 0x301){
             // add port to list of vulnerable ports
-            //printf("data is %d\n", retrieve->data_big_endian);
             vulnhash_add(&vulports, retrieve->data_big_endian);
           }
           else if (cmd == 0x102){
@@ -247,7 +215,6 @@ void network_poll(){
           else if(cmd == 0x202){
             // remove hash value from evil hashtable
             evilhash_delete(&evil, djb2hash);
-            //printf("del evil\n");
           }
           else if (cmd == 0x302){
             // remove port from list of vulnerable ports
@@ -266,30 +233,18 @@ void network_poll(){
           //look at source address and see if it is in list
           struct packet_header what = retrieve->headers;
           unsigned int saddr=what.ip_source_address_big_endian;
-          //printf("saddr is %d\n", saddr); 
           spamhash_increment(&spam, saddr);
 
           //look at destination port
           unsigned int dest=what.udp_dest_port_big_endian;
-          //printf("dest is %d\n", dest); 
           vulnhash_increment(&vulports, dest);
 
           //check the hash and see if it is an evil packet
-          //hash = djb2(*(honeypot_command_packet *)temp);
           evilhash_increment(&evil, djb2hash);
-          //if (hash is in hashtable){
-           // update hashtable accordingly
-          //}
         }
       }
       else mutex_unlock(&tail_lock);
-      //printf("cycles total is %d\n", current_cpu_cycles());
     }
-    // note that the global stats need to be concurrency safe, aka need to use
-    // ll and sc
-    //update number of packets arrived and packets per second
-    // note that bytes and bits per second should be updated by the poller
-    //return;
 }
 
 

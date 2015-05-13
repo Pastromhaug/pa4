@@ -49,103 +49,44 @@ void spamhash_create(struct spamhash *self){
 // add a value as key to the hashtable and initialize val to 0
 // if that value is already in the hashtable, do nothing
 void spamhash_add(struct spamhash *self, unsigned int newkey) {
-	//printf("TableSize is %d\n", self->TableSize);
 	unsigned int hashkey = hash(newkey) % self->TableSize;
-	//struct pair** temp = &(self->buffer + hashkey);
-	//printf("temp is %p\n", temp);
 
 	// insert is the node that is being added
 	struct pair* insert;
-	// temp is temporary node to keep track of next
-	
-
 	struct pair* check;
-
-//	if(self->buffer[hashkey].key == 0){
-//		self->buffer[hashkey].key = newkey;
-//		self->buffer[hashkey].val = 0;
-//		self->buffer[hashkey].next = NULL;
-//		self->numElements++;
-//		printf("hashkey: %d, key: %d, val: %d\n", hashkey, self->buffer[hashkey].key, self->buffer[hashkey].val);
-//	} else {
-		//check if the other nodes contain newkey
-		check = self->buffer[hashkey].next;
-		while(check != NULL){
-			if (check->key == newkey){
-				return;
-			}
-			check = check->next;
+	check = self->buffer[hashkey].next;
+	while(check != NULL){
+		if (check->key == newkey){
+			return;
 		}
-
-		mutex_lock(&malloc_lock);
-		insert = (struct pair*)malloc(sizeof(struct pair));
-		mutex_unlock(&malloc_lock);
-
-
-
-		struct pair* temp;
-		temp = self->buffer[hashkey].next;
-		self->buffer[hashkey].next = insert;
-		insert->next = temp;
-		insert->key = newkey;
-		insert->val = 0;
-		self->numElements++;
-
-		//add to total entries
-		mutex_lock(&spamentry_lock);
-		spamentries++;
-		mutex_unlock(&spamentry_lock);
-
-		//printf("hashkey: %d, key: %08x, val: %d\n", hashkey, insert->key, insert->val);
-
-//	}
-
-
-
-	//int i = 1;
-	//while(temp != NULL) {
-//		printf("do not print\n");
-//		printf("hashkey: %d, bucket# %d, key: %d, val: %d\n", hashkey, i, temp->key, temp->val);
-//		if (temp->key == newkey) return;
-//		temp = temp->next;
-//		i++;
-//	} 
-	//if (temp->key == newkey) return;
-//	mutex_lock(&malloc_lock);
-//	temp = (struct pair*)malloc(sizeof(struct pair));
-//	mutex_unlock(&malloc_lock);
-//	temp->next = NULL;
-//	temp->key = newkey;
-//	temp->val = 0;
-//	self->numElements++;
-//	printf("hashkey: %d, bucket# %d, key: %d, val: %d\n", hashkey, i, temp->key, temp->val);
-	/*printf("added\n");
-	printf("temp is %p\n", temp);
-	printf("the newkey is %d\n", newkey);*/
+		check = check->next;
+	}
+	mutex_lock(&malloc_lock);
+	insert = (struct pair*)malloc(sizeof(struct pair));
+	mutex_unlock(&malloc_lock);
+	struct pair* temp;
+	temp = self->buffer[hashkey].next;
+	self->buffer[hashkey].next = insert;
+	insert->next = temp;
+	insert->key = newkey;
+	insert->val = 0;
+	self->numElements++;
+	//add to total entries
+	mutex_lock(&spamentry_lock);
+	spamentries++;
+	mutex_unlock(&spamentry_lock);
 	return;
 }
 
 //Remove a saddr or destport from the hashtable
 // if the value is not in the hashtable, do nothing
 void spamhash_delete(struct spamhash *self, unsigned int oldkey){
-	/*unsigned int hashkey = hash(oldkey) % self->TableSize;
-	if(self->buffer[hashkey].key != 0)
-	{
-		self->buffer[hashkey].key = 0;
-		self->buffer[hashkey].val = 0;
-		self->numElements--;
-		//printf("deleted\n");
-	}*/
-
 	unsigned int hashkey = hash(oldkey) % self->TableSize;
 	struct pair* check = self->buffer[hashkey].next;
 	struct pair* temp = (self->buffer+hashkey);
-	//printf("trying to delete %08x\n", oldkey);
-
 
 	while(check != NULL) {
 		if (check->key == oldkey){
-			//printf("found\n");
 			//decrease total entry by 1
 			mutex_lock(&spamentry_lock);
 			spamentries--;
@@ -169,13 +110,6 @@ void spamhash_delete(struct spamhash *self, unsigned int oldkey){
 
 // check if a saddr or destport is in the hashtable, if so, increment the value by 1
 void spamhash_increment(struct spamhash *self, unsigned int check){
-	//unsigned int hashkey = hash(check) % self->TableSize;
-	//printf("key is %d\n", self->buffer[hashkey].key);
-	/*if (self->buffer[hashkey].key != 0){
-		self->buffer[hashkey].val++;
-		//printf("number is %d\n", self->buffer[hashkey].val);
-	}*/
-
 	unsigned int hashkey = hash(check) % self->TableSize;
 	struct pair* temp = self->buffer[hashkey].next;
 	while(temp != NULL) {
@@ -208,11 +142,6 @@ void spamhash_print(struct spamhash *self){
 	}
 	printf("total spam count:        %d\n", spamcount);
 	printf("total spam entries:      %d\n", spamentries);
-	
-	//printf("seconds is %f\n", seconds);
-	//printf("cycles is %d\n", current_cpu_cycles());
-	//printf("seconds is %f\n", seconds);
-
 }
 
 

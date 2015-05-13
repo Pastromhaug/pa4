@@ -50,111 +50,42 @@ void vulnhash_create(struct vulnhash *self){
 // add a value as key to the hashtable and initialize val to 0
 // if that value is already in the hashtable, do nothing
 void vulnhash_add(struct vulnhash *self, unsigned int newkey) {
-	//printf("TableSize is %d\n", self->TableSize);
 	unsigned int hashkey = hash2(newkey) % self->TableSize;
-	//struct couple** temp = &(self->buffer + hashkey);
-	
-	//printf("hash2(newkey) is %d\n", hash2(newkey));
-	//printf("hashkey is %d\n", hashkey);
 
 	// insert is the node that is being added
 	struct couple* insert;
-	// temp is temporary node to keep track of next
-	
-
 	struct couple* check;
-
-
-//	if(self->buffer[hashkey].key == 0){
-//		self->buffer[hashkey].key = newkey;
-//		self->buffer[hashkey].val = 0;
-//		self->buffer[hashkey].next = NULL;
-//		self->numElements++;
-//		printf("hashkey: %d, key: %d, val: %d\n", hashkey, self->buffer[hashkey].key, self->buffer[hashkey].val);
-//	} else {
-		//check if the other nodes contain newkey
-		check = self->buffer[hashkey].next;
-		while(check != NULL){
-			if (check->key == newkey){
-				return;
-			}
-			check = check->next;
+	check = self->buffer[hashkey].next;
+	while(check != NULL){
+		if (check->key == newkey){
+			return;
 		}
-
-		mutex_lock(&malloc_lock);
-		insert = (struct couple*)malloc(sizeof(struct couple));
-		mutex_unlock(&malloc_lock);
-
-
-
-
-
-
-		struct couple* temp;
-		temp = self->buffer[hashkey].next;
-		self->buffer[hashkey].next = insert;
-		insert->next = temp;
-		insert->key = newkey;
-		insert->val = 0;
-		self->numElements++;
-
-		//printf("newkey is %d\n", newkey);
-		//printf("insert->key is %d\n", insert->key);
-
-
-
-		//add to total entries
-		mutex_lock(&vulnentry_lock);
-		vulnentries++;
-		mutex_unlock(&vulnentry_lock);
-
-		//printf("hashkey: %d, key: %08x, val: %d\n", hashkey, insert->key, insert->val);
-
-//	}
-
-
-
-	//int i = 1;
-	//while(temp != NULL) {
-//		printf("do not print\n");
-//		printf("hashkey: %d, bucket# %d, key: %d, val: %d\n", hashkey, i, temp->key, temp->val);
-//		if (temp->key == newkey) return;
-//		temp = temp->next;
-//		i++;
-//	} 
-	//if (temp->key == newkey) return;
-//	mutex_lock(&malloc_lock);
-//	temp = (struct couple*)malloc(sizeof(struct couple));
-//	mutex_unlock(&malloc_lock);
-//	temp->next = NULL;
-//	temp->key = newkey;
-//	temp->val = 0;
-//	self->numElements++;
-//	printf("hashkey: %d, bucket# %d, key: %d, val: %d\n", hashkey, i, temp->key, temp->val);
-	/*printf("added\n");
-	printf("temp is %p\n", temp);
-	printf("the newkey is %d\n", newkey);*/
+		check = check->next;
+	}
+	mutex_lock(&malloc_lock);
+	insert = (struct couple*)malloc(sizeof(struct couple));
+	mutex_unlock(&malloc_lock);
+	struct couple* temp;
+	temp = self->buffer[hashkey].next;
+	self->buffer[hashkey].next = insert;
+	insert->next = temp;
+	insert->key = newkey;
+	insert->val = 0;
+	self->numElements++;
+	//add to total entries
+	mutex_lock(&vulnentry_lock);
+	vulnentries++;
+	mutex_unlock(&vulnentry_lock);
 	return;
 }
 
 //Remove a saddr or destport from the hashtable
 // if the value is not in the hashtable, do nothing
 void vulnhash_delete(struct vulnhash *self, unsigned int oldkey){
-	/*unsigned int hashkey = hash2(oldkey) % self->TableSize;
-	if(self->buffer[hashkey].key != 0)
-	{
-		self->buffer[hashkey].key = 0;
-		self->buffer[hashkey].val = 0;
-		self->numElements--;
-		//printf("deleted\n");
-	}*/
-
 	unsigned int hashkey = hash2(oldkey) % self->TableSize;
 	struct couple* check = self->buffer[hashkey].next;
 	struct couple* temp = (self->buffer+hashkey);
-	//printf("trying to delete %08x\n", oldkey);
-
-
+	
 	while(check != NULL) {
 		if (check->key == oldkey){
 			//decrease total entry by 1
@@ -180,24 +111,14 @@ void vulnhash_delete(struct vulnhash *self, unsigned int oldkey){
 
 // check if a saddr or destport is in the hashtable, if so, increment the value by 1
 void vulnhash_increment(struct vulnhash *self, unsigned int check){
-	//unsigned int hashkey = hash2(check) % self->TableSize;
-	//printf("key is %d\n", self->buffer[hashkey].key);
-	/*if (self->buffer[hashkey].key != 0){
-		self->buffer[hashkey].val++;
-		//printf("number is %d\n", self->buffer[hashkey].val);
-	}*/
-
 	check = check << 16;
 
 	unsigned int hashkey = hash2(check) % self->TableSize;
 	struct couple* temp = self->buffer[hashkey].next;
 	while(temp != NULL) {
-		//printf("check is %d\n", check);
-		//printf("temp key is %d\n", temp->key);
 		if (temp->key == check){
 			temp->val++;
-			//printf("found it!\n");
-
+			
 			//increase total count by 1
 			mutex_lock(&vulncount_lock);
 			vulncount++;
