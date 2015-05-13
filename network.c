@@ -206,28 +206,17 @@ void network_poll(){
             //printf("del vulnerable\n");
           }
           else if(cmd == HONEYPOT_PRINT){
-            // Print out the statistics
-            //printf("print statistics\n");
-            //printf("count spam_source\n");
-            //int totalcount = 0;
-            //int totalentr =0;
-            //for (int k=0; k < spam.TableSize; k++){
-              //if (spam.buffer[k].key != 0){
-                //printf("%d %08x      |\n", spam.buffer[k].val, spam.buffer[k].key);
-                //totalcount = totalcount + spam.buffer[k].val;
-                //totalentr++;
-              }
-            }
-            //printf("total count:      %d      |\n", totalcount);
-
-            //printf("total entries:      %d      |\n", totalentr);
+           network_print();
+        
+          }
+        }
         // else treat like a non-cmd packet
         else{
           //look at source address and see if it is in list
-          //struct packet_header what = retrieve->headers;
-          //unsigned int saddr=what.ip_source_address_big_endian;
+          struct packet_header what = retrieve->headers;
+          unsigned int saddr=what.ip_source_address_big_endian;
           //printf("saddr is %d\n", saddr); 
-          //hashtable_increment(&spam, saddr);
+          hashtable_increment(&spam, saddr);
 
           //look at destination port
           //unsigned int dest=what.udp_dest_port_big_endian;
@@ -253,7 +242,25 @@ void network_poll(){
 }
 
 void network_print(){
-  printf("whatsup bro\n");
+//Print out the statistics
+//struct pair* printtemp;
+//printf("print statistics\n");
+//printf("count spam_source\n");
+//int totalcount = 0;
+//int totalentr =0;
+//for (int k=0; k < spam.TableSize; k++){
+//              if (spam.buffer[k].next->key != 0){
+//                printtemp = spam.buffer[k].next;
+ //               while(printtemp != NULL){
+   //               printf("%d %08x      |\n", printtemp.val, printtemp.key);
+     //             printtemp = printtemp.next;
+       //           totalcount = totalcount + spam.buffer[k].val;
+         //         totalentr++;
+          //      }
+              //}
+           //}
+           //printf("total count:      %d      |\n", totalcount);
+           //printf("total entries:      %d      |\n", totalentr);}
 }
 
 

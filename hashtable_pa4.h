@@ -3,6 +3,12 @@
 
 #include "kernel.h"
 
+extern int totalcount;
+extern int totalentries;
+
+extern int count_lock;
+extern int entry_lock;
+
 unsigned int hash( unsigned int a);
 
 struct pair {

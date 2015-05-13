@@ -1,5 +1,11 @@
 #include "kernel.h"
 
+int totalcount = 0;
+int totalentries = 0;
+
+int count_lock = 0;
+int entry_lock = 0;
+
 //--------------------HASHTABLE---------------------------------//
 //hashtable for source addr and source ports
 
@@ -74,6 +80,9 @@ void hashtable_add(struct hashtable *self, unsigned int newkey) {
 		mutex_lock(&malloc_lock);
 		insert = (struct pair*)malloc(sizeof(struct pair));
 		mutex_unlock(&malloc_lock);
+
+
+
 		struct pair* temp;
 		temp = self->buffer[hashkey].next;
 		self->buffer[hashkey].next = insert;
@@ -81,6 +90,12 @@ void hashtable_add(struct hashtable *self, unsigned int newkey) {
 		insert->key = newkey;
 		insert->val = 0;
 		self->numElements++;
+
+		//add to total entries
+		mutex_lock(&entry_lock);
+		totalentries++;
+		mutex_unlock(&entry_lock);
+
 		//printf("hashkey: %d, key: %08x, val: %d\n", hashkey, insert->key, insert->val);
 
 //	}
@@ -131,6 +146,16 @@ void hashtable_delete(struct hashtable *self, unsigned int oldkey){
 	while(check != NULL) {
 		if (check->key == oldkey){
 			printf("found\n");
+			//decrease total entry by 1
+			mutex_lock(&entry_lock);
+			totalentries--;
+			mutex_unlock(&entry_lock);
+
+			//decrease total count by val
+			mutex_lock(&count_lock);
+			totalcount = totalcount - check->val;
+			mutex_unlock(&count_lock);
+
 			temp->next = check->next;
 			mutex_lock(&free_lock);
 			free(check);
@@ -156,6 +181,11 @@ void hashtable_increment(struct hashtable *self, unsigned int check){
 	while(temp != NULL) {
 		if (temp->key == check){
 			temp->val++;
+
+			//increase total count by 1
+			mutex_lock(&count_lock);
+			totalcount++;
+			mutex_unlock(&count_lock);
 		}
 		temp = temp->next;
 	} 
