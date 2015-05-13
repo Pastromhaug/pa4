@@ -141,7 +141,7 @@ void __boot() {
 
     //initialize the network driver
     network_init();
-    network_start_receive();
+    
     
     // initialize keyboard late, since it isn't really used by anything else
     keyboard_init();
@@ -157,7 +157,7 @@ void __boot() {
     busy_wait(0.1);
     //for (int i = 0; i < 32; i++)
       //printf("CPU[%d] is %s\n", i, (current_cpu_enable() & (1<<i)) ? "on" : "off");
-    printf("working\n");
+    network_start_receive();
     network_poll();
 
 

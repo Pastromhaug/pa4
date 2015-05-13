@@ -1,4 +1,6 @@
 #include "kernel.h"
+#include "spamhash.h"
+#include "network.h"
 
 // Keyboard device driver.
 
@@ -27,6 +29,9 @@ void keyboard_trap() {
   while (dev_kbd->status) {
     // read the character
     char c = dev_kbd->data;
+    if(c>0x00){
+      spamhash_print(&spam);
+    }
     // then just print it
     putchar(c);
   }

@@ -7,6 +7,14 @@
 extern int tail_lock;
 extern int malloc_lock;
 extern int free_lock;
+extern int pkts_lock;
+extern int bytes_lock;
+
+extern struct spamhash spam;
+extern struct vulnhash vulports;
+
+unsigned int switch_endian(unsigned int num);
+
 // Initializes the network driver, allocating the space for the ring buffer.
 void network_init();
 

@@ -1,6 +1,7 @@
 #include "kernel.h"
 #include "machine.h"
-#include "hashtable_pa4.h"
+#include "spamhash.h"
+#include "vulnhash.h"
 
 #define RING_SIZE 16
 #define BIG_RING_SIZE 100
@@ -8,18 +9,28 @@
 
 // a pointer to the memory-mapped I/O region for the console
 volatile struct dev_net *dev_net;
-struct hashtable spam;
-struct hashtable vulports;
+struct spamhash spam;
+struct vulnhash vulports;
 
 //mutex locks
 int tail_lock = 0;
 int malloc_lock = 0;
 int free_lock = 0;
+int print_lock = 0;
+int pkts_lock = 0;
+int bytes_lock = 0;
 
 //struct hashtable Spammer;
 //struct hashtable Evil;
 //struct hashtable Vulnerable;
 
+//Citation for switch endian function
+//http://stackoverflow.com/questions/2182002/convert-big-endian-to-little-endian-in-c-without-using-provided-func
+unsigned int switch_endian(unsigned int num){
+  unsigned int swapped;
+  swapped = ((num>>24)&0xff) | ((num<<8)&0xff0000) | ((num>>8)&0xff00) | ((num<<24)&0xff000000);
+  return swapped;
+}
 
 // Initializes the network driver, allocating the space for the ring buffer.
 void network_init(){
@@ -56,8 +67,8 @@ void network_init(){
 
 
       //initialize the hashtables
-      hashtable_create(&spam);
-      hashtable_create(&vulports);
+      spamhash_create(&spam);
+      vulnhash_create(&vulports);
       return;
     }
   }
@@ -165,9 +176,13 @@ void network_poll(){
 
          //update global stats
         // total packet number increases by 1
+        mutex_lock(&pkts_lock);
         total_pkts++;
+        mutex_unlock(&pkts_lock);
         // total byte number increases by number of bytes
+        mutex_lock(&bytes_lock);
         total_bytes = total_bytes + num_bytes;
+        mutex_unlock(&bytes_lock);
         //printf("total packets is %d\n", total_pkts);
         //printf("total bytes is %d\n", total_bytes);
 
@@ -178,10 +193,10 @@ void network_poll(){
         if (secret == 4148){
           // find the cmd packet
           unsigned short cmd = retrieve->cmd_big_endian;
-          //printf("cmd is %d\n", cmd);
+         // printf("cmd is %d\n", cmd);
           if (cmd == HONEYPOT_ADD_SPAMMER){
             // add address to list of spammer addresses
-            hashtable_add(&spam, retrieve->data_big_endian);
+            spamhash_add(&spam, retrieve->data_big_endian);
           }
           else if (cmd == HONEYPOT_ADD_EVIL){
             //add evil hash value to hashtable
@@ -189,11 +204,12 @@ void network_poll(){
           }
           else if(cmd == HONEYPOT_ADD_VULNERABLE){
             // add port to list of vulnerable ports
-            hashtable_add(&vulports, retrieve->data_big_endian);
+            //printf("holy moly\n");
+            //vulnhash_add(&vulports, retrieve->data_big_endian);
           }
           else if (cmd == HONEYPOT_DEL_SPAMMER){
             //remove address from list of spammer addresses
-            hashtable_delete(&spam, retrieve->data_big_endian);
+            spamhash_delete(&spam, retrieve->data_big_endian);
           }
           else if(cmd == HONEYPOT_DEL_EVIL){
             // remove hash value from evil hashtable
@@ -201,10 +217,13 @@ void network_poll(){
           }
           else if (cmd == HONEYPOT_DEL_VULNERABLE){
             // remove port from list of vulnerable ports
-            hashtable_delete(&vulports, retrieve->data_big_endian);
+            //vulnhash_delete(&vulports, retrieve->data_big_endian);
           }
           else if(cmd == HONEYPOT_PRINT){
-           hashtable_print(&spam);
+            mutex_lock(&print_lock);
+            spamhash_print(&spam);
+            mutex_unlock(&print_lock);
+           //vulnhash_print(&vulports);
           }
         }
         // else treat like a non-cmd packet
@@ -213,14 +232,12 @@ void network_poll(){
           struct packet_header what = retrieve->headers;
           unsigned int saddr=what.ip_source_address_big_endian;
           //printf("saddr is %d\n", saddr); 
-          hashtable_increment(&spam, saddr);
+          spamhash_increment(&spam, saddr);
 
           //look at destination port
-          //unsigned int dest=what.udp_dest_port_big_endian;
+          unsigned int dest=what.udp_dest_port_big_endian;
           //printf("dest is %d\n", dest); 
-          //if (dest is in list of vulnerable ports){
-            //update accordingly
-          //}
+          vulnhash_increment(&vulports, dest);
 
           //check the hash and see if it is an evil packet
           //hash = djb2(*(honeypot_command_packet *)temp);

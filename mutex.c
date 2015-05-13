@@ -13,3 +13,6 @@ void mutex_unlock(int *m) {
 	asm volatile("SW $0, 0($4)");
 	return;
 }
+
+//citation for mutex lock code
+//Lecture slides, Hakim Weatherspoon CS 3410 Cornell University
