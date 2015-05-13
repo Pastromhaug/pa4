@@ -188,12 +188,12 @@ void network_poll(){
 
 
         secret = retrieve->secret_big_endian;
-        //printf("secret is %d\n", secret);
+        printf("secret is %d\n", secret);
         // if secret is 3410, treat as a cmd packet
         if (secret == 4148){
           // find the cmd packet
           unsigned short cmd = retrieve->cmd_big_endian;
-         // printf("cmd is %d\n", cmd);
+         printf("cmd is %d\n", cmd);
           if (cmd == HONEYPOT_ADD_SPAMMER){
             // add address to list of spammer addresses
             spamhash_add(&spam, retrieve->data_big_endian);
