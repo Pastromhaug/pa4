@@ -160,15 +160,11 @@ void __boot() {
     network_poll();
 
 
-  } else if (current_cpu_id() == 1){
+  } else {
     
     network_handle();
 
-  }  else{
-    /* remaining cores boot after core 0 turns them on */
-
-    // nothing to initialize here... 
-  }
+  } 
 
   printf("Core %d of %d is alive!\n", current_cpu_id(), current_cpu_exists());
 

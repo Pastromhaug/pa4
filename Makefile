@@ -29,7 +29,7 @@ COMMONFLAGS += -Werror
 # It also can make debugging very tricky, as the compiler will re-order
 # statements as it sees fit.  You will almost certainly need to examine the
 # assembly code produced under optimizations, especially wherever you use inline assembly. 
-#COMMONFLAGS += -O3
+COMMONFLAGS += -O3
 
 
 #

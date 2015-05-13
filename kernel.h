@@ -6,6 +6,9 @@
 #include "console.h"
 #include "keyboard.h"
 #include "network.h"
+#include "mutex.h"
+
+#define NULL ((void *) 0)
 
 struct dma_ring_slot* Big_Ring;
 unsigned int Big_head;

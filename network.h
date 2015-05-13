@@ -4,6 +4,9 @@
 #include "machine.h"
 #include "honeypot.h"
 
+extern int tail_lock;
+extern int malloc_lock;
+extern int free_lock;
 // Initializes the network driver, allocating the space for the ring buffer.
 void network_init();
 
@@ -22,5 +25,7 @@ void network_trap();
 
 //Fetch packet from memory and analyze
 void network_handle();
+
+void network_print();
 
 #endif

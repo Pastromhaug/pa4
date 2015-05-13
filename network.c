@@ -2,7 +2,6 @@
 #include "machine.h"
 #include "hashtable_pa4.h"
 
-
 #define RING_SIZE 16
 #define BIG_RING_SIZE 100
 #define BUFFER_SIZE 4096
@@ -11,7 +10,10 @@
 volatile struct dev_net *dev_net;
 struct hashtable spam;
 
-
+//mutex locks
+int tail_lock = 0;
+int malloc_lock = 0;
+int free_lock = 0;
 
 //struct hashtable Spammer;
 //struct hashtable Evil;
@@ -122,7 +124,10 @@ void network_poll(){
       //printf("secret is %d\n", secret);
 
       //malloc space for a new buffer in small ring
+      mutex_lock(&malloc_lock);
       void* space = malloc(BUFFER_SIZE);
+      mutex_unlock(&malloc_lock);
+
       small_ring[index].dma_base = virtual_to_physical(space);
       small_ring[index].dma_len = BUFFER_SIZE;
 
@@ -140,17 +145,23 @@ void network_poll(){
     unsigned short secret;
     while (1){
       
+      mutex_lock(&tail_lock);
       if (Big_head != Big_tail){
         Big_handle_index = Big_tail % BIG_RING_SIZE;
         struct honeypot_command_packet *retrieve = (struct honeypot_command_packet*)Big_Ring[Big_handle_index].dma_base;
 
         //free that buffer
+        mutex_lock(&free_lock);
         free((void*)Big_Ring[Big_handle_index].dma_base);
+        mutex_unlock(&free_lock);
+
+        //printf("2\n");
         //Increment Big_tail
         //printf("Big_tail is %d\n", Big_tail);
         //printf("Big_handle_index is %d\n", Big_handle_index);
         unsigned int num_bytes = Big_Ring[Big_handle_index].dma_len;
         Big_tail++;
+        mutex_unlock(&tail_lock);
 
 
 
@@ -213,10 +224,10 @@ void network_poll(){
         // else treat like a non-cmd packet
         else{
           //look at source address and see if it is in list
-          struct packet_header what = retrieve->headers;
-          unsigned int saddr=what.ip_source_address_big_endian;
+          //struct packet_header what = retrieve->headers;
+          //unsigned int saddr=what.ip_source_address_big_endian;
           //printf("saddr is %d\n", saddr); 
-          hashtable_increment(&spam, saddr);
+          //hashtable_increment(&spam, saddr);
 
           //look at destination port
           //unsigned int dest=what.udp_dest_port_big_endian;
@@ -232,12 +243,17 @@ void network_poll(){
           //}
         }
       }
+      else mutex_unlock(&tail_lock);
     }
     // note that the global stats need to be concurrency safe, aka need to use
     // ll and sc
     //update number of packets arrived and packets per second
     // note that bytes and bits per second should be updated by the poller
     //return;
+}
+
+void network_print(){
+  printf("whatsup bro\n");
 }
 
 
