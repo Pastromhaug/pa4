@@ -206,7 +206,7 @@ void network_poll(){
             //printf("del vulnerable\n");
           }
           else if(cmd == HONEYPOT_PRINT){
-           network_print();
+           network_print(&spam);
         
           }
         }
@@ -241,26 +241,5 @@ void network_poll(){
     //return;
 }
 
-void network_print(){
-//Print out the statistics
-//struct pair* printtemp;
-//printf("print statistics\n");
-//printf("count spam_source\n");
-//int totalcount = 0;
-//int totalentr =0;
-//for (int k=0; k < spam.TableSize; k++){
-//              if (spam.buffer[k].next->key != 0){
-//                printtemp = spam.buffer[k].next;
- //               while(printtemp != NULL){
-   //               printf("%d %08x      |\n", printtemp.val, printtemp.key);
-     //             printtemp = printtemp.next;
-       //           totalcount = totalcount + spam.buffer[k].val;
-         //         totalentr++;
-          //      }
-              //}
-           //}
-           //printf("total count:      %d      |\n", totalcount);
-           //printf("total entries:      %d      |\n", totalentr);}
-}
 
 

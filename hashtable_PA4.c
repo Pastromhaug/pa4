@@ -193,4 +193,21 @@ void hashtable_increment(struct hashtable *self, unsigned int check){
 }
 
 
+void network_print(struct hashtable *self){
+	//Print out the statistics
+	struct pair* printtemp;
+	printf("print statistics\n");
+	printf("count spam_source\n");
+	for (int k=0; k < self->TableSize; k++){
+		printtemp = self->buffer[k].next;
+	  	while(printtemp != NULL){
+	      printf("%d %08x      |\n", printtemp->val, printtemp->key);
+	      printtemp = printtemp->next;
+	    }
+	}
+	printf("total count:        %d      |\n", totalcount);
+	printf("total entries:      %d      |\n", totalentries);
+}
+
+
 
